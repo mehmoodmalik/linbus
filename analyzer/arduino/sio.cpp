@@ -64,7 +64,8 @@ namespace sio {
     UCSR0A = H(U2X0);
     // Enable  the transmitter. Reciever is disabled.
     UCSR0B = H(TXEN0);
-    UCSR0C = H(UDORD0) | H(UCPHA0);  //(3 << UCSZ00);  
+    // UCSR0C = H(UDORD0) | H(UCPHA0);  //(3 << UCSZ00);  
+    UCSR0C = H(UCSZ01) | H(UCSZ00);  //(3 << UCSZ00);
   }
 
   void printchar(uint8 c) {
