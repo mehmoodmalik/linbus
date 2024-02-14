@@ -331,27 +331,50 @@ namespace lin_processor {
 
   // ----- Initialization -----
 
-  static void setupTimer() {    
+  static void setupTimer() {
+    #if defined(ARDUINO_AVR_LEONARDO)
     // OC2B cycle pulse (Arduino digital pin 3, PD3). For debugging.
-    DDRD |= H(DDD3);
-    // Fast PWM mode, OC2B output active high.
-    TCCR2A = L(COM2A1) | L(COM2A0) | H(COM2B1) | H(COM2B0) | H(WGM21) | H(WGM20);
-    const uint8 prescaler = config.prescaler_x64()
-      ? (H(CS22) | L(CS21) | L(CS20))   // x64
-        : (L(CS22) | H(CS21) | L(CS20));  // x8
-    // Prescaler: X8. Should match the definition of kPreScaler;
-    TCCR2B = L(FOC2A) | L(FOC2B) | H(WGM22) | prescaler;
-    // Clear counter.
-    TCNT2 = 0;
-    // Determines baud rate.
-    OCR2A = config.counts_per_bit() - 1;
-    // A short 8 clocks pulse on OC2B at the end of each cycle,
-    // just before triggering the ISR.
-    OCR2B = config.counts_per_bit() - 2; 
-    // Interrupt on A match.
-    TIMSK2 = L(OCIE2B) | H(OCIE2A) | L(TOIE2);
-    // Clear pending Compare A interrupts.
-    TIFR2 = L(OCF2B) | H(OCF2A) | L(TOV2);
+      DDRD |= H(DDD3);
+      // Fast PWM mode, OC2B output active high.
+      TCCR0A = L(COM0A1) | L(COM0A0) | H(COM0B1) | H(COM0B0) | H(WGM01) | H(WGM00);
+      const uint8 prescaler = config.prescaler_x64()
+        ? (L(CS02) | H(CS01) | H(CS00))   // x64
+          : (L(CS02) | H(CS01) | L(CS00));  // x8
+      // Prescaler: X8. Should match the definition of kPreScaler;
+      TCCR0B = L(FOC0A) | L(FOC0B) | H(WGM02) | prescaler;
+      // Clear counter.
+      TCNT0 = 0;
+      // Determines baud rate.
+      OCR0A = config.counts_per_bit() - 1;
+      // A short 8 clocks pulse on OC2B at the end of each cycle,
+      // just before triggering the ISR.
+      OCR0B = config.counts_per_bit() - 2; 
+      // Interrupt on A match.
+      TIMSK0 = L(OCIE0B) | H(OCIE0A) | L(TOIE0);
+      // Clear pending Compare A interrupts.
+      TIFR0 = L(OCF0B) | H(OCF0A) | L(TOV0);
+    #else
+      // OC2B cycle pulse (Arduino digital pin 3, PD3). For debugging.
+      DDRD |= H(DDD3);
+      // Fast PWM mode, OC2B output active high.
+      TCCR2A = L(COM2A1) | L(COM2A0) | H(COM2B1) | H(COM2B0) | H(WGM21) | H(WGM20);
+      const uint8 prescaler = config.prescaler_x64()
+        ? (H(CS22) | L(CS21) | L(CS20))   // x64
+          : (L(CS22) | H(CS21) | L(CS20));  // x8
+      // Prescaler: X8. Should match the definition of kPreScaler;
+      TCCR2B = L(FOC2A) | L(FOC2B) | H(WGM22) | prescaler;
+      // Clear counter.
+      TCNT2 = 0;
+      // Determines baud rate.
+      OCR2A = config.counts_per_bit() - 1;
+      // A short 8 clocks pulse on OC2B at the end of each cycle,
+      // just before triggering the ISR.
+      OCR2B = config.counts_per_bit() - 2; 
+      // Interrupt on A match.
+      TIMSK2 = L(OCIE2B) | H(OCIE2A) | L(TOIE2);
+      // Clear pending Compare A interrupts.
+      TIFR2 = L(OCF2B) | H(OCF2A) | L(TOV2);
+    #endif
   }
 
   // Call once from main at the begining of the program.
@@ -382,18 +405,27 @@ namespace lin_processor {
 
   // Set timer value to zero.
   static inline void resetTickTimer() {
-    // TODO: also clear timer2 prescaler.
-    TCNT2 = 0;
+    #if defined(ARDUINO_AVR_LEONARDO)
+     // TODO: also clear timer2 prescaler.
+      TCNT0 = 0;
+    #else
+      // TODO: also clear timer2 prescaler.
+      TCNT2 = 0;
+    #endif
   }
 
   // Set timer value to half a tick. Called at the begining of the
   // start bit to generate sampling ticks at the middle of the next
   // 10 bits (start, 8 * data, stop).
   static inline void setTimerToHalfTick() {
-    // Adding 2 to compensate for pre calling delay. The goal is
-    // to have the next ISR data sampling at the middle of the start
-    // bit.
-    TCNT2 = config.counts_per_half_bit();
+    #if defined(ARDUINO_AVR_LEONARDO)
+      TCNT0 = config.counts_per_half_bit();
+    #else
+      // Adding 2 to compensate for pre calling delay. The goal is
+      // to have the next ISR data sampling at the middle of the start
+      // bit.
+      TCNT2 = config.counts_per_half_bit();
+    #endif
   }
 
   // Perform a tight busy loop until RX is low or the given number
