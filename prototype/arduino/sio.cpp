@@ -53,6 +53,18 @@ namespace sio {
 #if F_CPU != 16000000
 #error "The existing code assumes 16Mhz CPU clk."
 #endif
+#if defined(ARDUINO_AVR_LEONARDO)
+    // For devisors see table 19-12 in the atmega328p datasheet.
+    // U2X0, 16 -> 115.2k baud @ 16MHz. 
+    // U2X0, 207 -> 9600 baud @ 16Mhz.
+    UBRR1H = 0;
+    UBRR1L = 16;
+    UCSR1A = H(U2X1);
+    // Enable  the transmitter. Reciever is disabled.
+    UCSR1B = H(TXEN1);
+    // UCSR0C = H(UDORD0) | H(UCPHA0);  //(3 << UCSZ00);  
+    UCSR1C = H(UCSZ11) | H(UCSZ10);  //(3 << UCSZ00);
+#else
     // For devisors see table 19-12 in the atmega328p datasheet.
     // U2X0, 16 -> 115.2k baud @ 16MHz. 
     // U2X0, 207 -> 9600 baud @ 16Mhz.
@@ -61,7 +73,9 @@ namespace sio {
     UCSR0A = H(U2X0);
     // Enable  the transmitter. Reciever is disabled.
     UCSR0B = H(TXEN0);
-    UCSR0C = H(UDORD0) | H(UCPHA0);  //(3 << UCSZ00);  
+    // UCSR0C = H(UDORD0) | H(UCPHA0);  //(3 << UCSZ00);  
+    UCSR0C = H(UCSZ01) | H(UCSZ00);  //(3 << UCSZ00);
+#endif
   }
 
   void printchar(uint8 c) {
@@ -74,9 +88,15 @@ namespace sio {
   }
 
   void loop() {
+#if defined(ARDUINO_AVR_LEONARDO)
+    if (count && (UCSR1A & H(UDRE1))) {
+      UDR1 = unsafe_dequeue();
+    }
+#else
     if (count && (UCSR0A & H(UDRE0))) {
       UDR0 = unsafe_dequeue();
     }
+#endif
   }
 
   uint8 capacity() {
