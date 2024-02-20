@@ -632,7 +632,11 @@ namespace lin_processor {
   // ----- ISR Handler -----
 
   // Interrupt on Timer 2 A-match.
+  #if defined(ARDUINO_AVR_LEONARDO)
+  ISR(TIMER0_COMPA_vect)
+  #else
   ISR(TIMER2_COMPA_vect)
+  #endif
   {
     isr_pin::setHigh();
     // TODO: make this state a boolean instead of enum? (efficency).
